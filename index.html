@@ -4,36 +4,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Habit Tracker | Monthly Dashboard</title>
+  <meta name="theme-color" content="#0c0b13">
+  <title>Habit Quest | Productivity Dashboard</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
   <div class="container">
 
     <header class="header">
       <div>
-        <h1>Habit Tracker</h1>
+        <h1>Habit Quest <span>✦</span></h1>
         <p>Build better habits, one day at a time.</p>
       </div>
-      <button id="themeBtn">☀️</button>
+      <div class="header-tag">YOUR PRODUCTIVITY SPACE</div>
     </header>
 
+    <!-- MONTHLY DASHBOARD -->
     <section class="dashboard">
-      <div class="top-bar">
+      <div class="section-heading">
         <div>
-          <label>Select Month</label>
-          <input type="month" id="monthPicker">
+          <h2>Monthly Overview</h2>
+          <p>See your progress at a glance.</p>
         </div>
-        <div class="stat">
+        <input type="month" id="monthPicker">
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
           <span>Success Rate</span>
           <h2 id="successRate">0%</h2>
         </div>
-      </div>
-
-      <canvas id="progressChart"></canvas>
-
-      <div class="stats-grid">
         <div class="stat-card">
           <span>Completed</span>
           <h2 id="completedCount">0</h2>
@@ -47,25 +47,98 @@
           <h2 id="bestHabit">-</h2>
         </div>
       </div>
+
+      <h3 class="chart-title">Daily completion rate</h3>
+      <canvas id="progressChart"></canvas>
     </section>
 
+    <!-- HABIT TRACKER -->
     <section class="tracker-section">
       <div class="section-heading">
         <div>
           <h2>Monthly Habits</h2>
-          <p>Track your daily consistency.</p>
+          <p>Mark your habits as you complete them.</p>
         </div>
-        <button id="addHabitBtn">+ Add Habit</button>
+        <button id="addHabitBtn" class="primary-btn">+ Add Habit</button>
       </div>
 
       <div class="table-wrapper">
-        <table id="habitTable">
+        <table>
           <thead id="tableHead"></thead>
           <tbody id="tableBody"></tbody>
         </table>
       </div>
     </section>
 
+    <!-- FOCUS ROOM -->
+    <section class="focus-section">
+      <div class="section-heading">
+        <div>
+          <h2>⚡ Focus Room</h2>
+          <p>Your personal space for distraction-free work.</p>
+        </div>
+        <span class="live-tag">FOCUS MODE</span>
+      </div>
+
+      <div class="focus-layout">
+        <div class="timer-card">
+          <div class="timer-modes">
+            <button class="mode-btn active" data-mode="focus">Focus</button>
+            <button class="mode-btn" data-mode="short">Short Break</button>
+            <button class="mode-btn" data-mode="long">Long Break</button>
+          </div>
+
+          <div class="timer-circle">
+            <div>
+              <div id="timerDisplay">25:00</div>
+              <p id="timerStatus">READY TO FOCUS?</p>
+            </div>
+          </div>
+
+          <div class="timer-controls">
+            <button id="startBtn" class="primary-btn">Start Focus</button>
+            <button id="pauseBtn" class="secondary-btn" disabled>Pause</button>
+            <button id="resetBtn" class="secondary-btn">Reset</button>
+          </div>
+
+          <p id="timerMessage" class="timer-message">One task at a time. You've got this.</p>
+        </div>
+
+        <div class="settings-card">
+          <h3>Customize your timer</h3>
+          <p>Choose the duration that works for you.</p>
+
+          <label for="focusDuration">Focus duration (minutes)</label>
+          <input type="number" id="focusDuration" min="5" max="120" value="25">
+
+          <label for="shortDuration">Short break (minutes)</label>
+          <input type="number" id="shortDuration" min="1" max="30" value="5">
+
+          <label for="longDuration">Long break (minutes)</label>
+          <input type="number" id="longDuration" min="5" max="60" value="15">
+
+          <button id="saveSettingsBtn" class="primary-btn full-btn">Save Settings</button>
+          <p id="settingsMessage" class="settings-message"></p>
+        </div>
+      </div>
+
+      <div class="focus-stats">
+        <div class="stat-card">
+          <span>Today's Focus Time</span>
+          <h2 id="focusTimeToday">0 min</h2>
+        </div>
+        <div class="stat-card">
+          <span>Completed Sessions</span>
+          <h2 id="sessionsToday">0</h2>
+        </div>
+        <div class="stat-card">
+          <span>Total Focus Time</span>
+          <h2 id="totalFocusTime">0 min</h2>
+        </div>
+      </div>
+    </section>
+
+    <!-- MONTHLY STATISTICS -->
     <section class="bottom-stats">
       <div class="stat-card">
         <h3>Monthly Progress</h3>
@@ -80,6 +153,10 @@
         <div id="consistency">0%</div>
       </div>
     </section>
+
+    <footer>
+      <p>HABIT QUEST · SMALL STEPS, BIG RESULTS</p>
+    </footer>
 
   </div>
 

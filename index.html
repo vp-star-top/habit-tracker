@@ -1,0 +1,88 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Habit Tracker | Monthly Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="container">
+
+    <header class="header">
+      <div>
+        <h1>Habit Tracker</h1>
+        <p>Build better habits, one day at a time.</p>
+      </div>
+      <button id="themeBtn">☀️</button>
+    </header>
+
+    <section class="dashboard">
+      <div class="top-bar">
+        <div>
+          <label>Select Month</label>
+          <input type="month" id="monthPicker">
+        </div>
+        <div class="stat">
+          <span>Success Rate</span>
+          <h2 id="successRate">0%</h2>
+        </div>
+      </div>
+
+      <canvas id="progressChart"></canvas>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span>Completed</span>
+          <h2 id="completedCount">0</h2>
+        </div>
+        <div class="stat-card">
+          <span>Total Tasks</span>
+          <h2 id="totalCount">0</h2>
+        </div>
+        <div class="stat-card">
+          <span>Best Habit</span>
+          <h2 id="bestHabit">-</h2>
+        </div>
+      </div>
+    </section>
+
+    <section class="tracker-section">
+      <div class="section-heading">
+        <div>
+          <h2>Monthly Habits</h2>
+          <p>Track your daily consistency.</p>
+        </div>
+        <button id="addHabitBtn">+ Add Habit</button>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="habitTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="bottom-stats">
+      <div class="stat-card">
+        <h3>Monthly Progress</h3>
+        <div id="monthlyProgress">0%</div>
+      </div>
+      <div class="stat-card">
+        <h3>Last 7 Days</h3>
+        <div id="weeklyProgress">0%</div>
+      </div>
+      <div class="stat-card">
+        <h3>Consistency</h3>
+        <div id="consistency">0%</div>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

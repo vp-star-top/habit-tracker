@@ -31,7 +31,11 @@ function localDateKey(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-// Date locking helpers
+const today = new Date();
+const currentMonth = localDateKey().slice(0, 7);
+
+// ---------------- DATE LOCKING ----------------
+
 function getCellDate(day) {
   return `${getMonth()}-${String(day).padStart(2, "0")}`;
 }
@@ -44,16 +48,7 @@ function isEditableDay(day) {
   return isToday(day);
 }
 
-function isPastMonth() {
-  return getMonth() < currentMonth;
-}
-
-function hasPastRecords() {
-  return Object.keys(records).some(month =>
-    month < currentMonth &&
-    Object.keys(records[month] || {}).length > 0
-  );
-}
+// ---------------- STORAGE ----------------
 
 function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -79,8 +74,6 @@ const tableHead = document.getElementById("tableHead");
 const tableBody = document.getElementById("tableBody");
 const chart = document.getElementById("progressChart");
 
-const today = new Date();
-const currentMonth = localDateKey().slice(0, 7);
 monthPicker.value = currentMonth;
 
 function getMonth() {
@@ -93,7 +86,9 @@ function getDays() {
 }
 
 function getMonthRecords() {
-  if (!records[getMonth()]) records[getMonth()] = {};
+  if (!records[getMonth()]) {
+    records[getMonth()] = {};
+  }
   return records[getMonth()];
 }
 
@@ -122,8 +117,19 @@ function renderTable() {
       const day = i + 1;
       const checked = isCompleted(habit.id, day);
       const editable = isEditableDay(day);
+      const cellDate = getCellDate(day);
 
       if (checked) completed++;
+
+      let title = "Locked date";
+
+      if (editable) {
+        title = "Today's habit - editable";
+      } else if (cellDate < localDateKey()) {
+        title = "Past record - read only";
+      } else {
+        title = "Future date - locked";
+      }
 
       return `
         <td>
@@ -135,17 +141,11 @@ function renderTable() {
             aria-label="${escapeHTML(habit.name)} day ${day}"
             ${checked ? "checked" : ""}
             ${editable ? "" : "disabled"}
-            title="${editable ? "Today's habit - editable" :
-              getCellDate(day) < localDateKey()
-                ? "Past record - read only"
-                : "Future date - locked"}"
+            title="${title}"
           >
         </td>
       `;
     }).join("");
-
-    const actionsLocked =
-      isPastMonth() || hasPastRecords();
 
     return `
       <tr>
@@ -153,14 +153,17 @@ function renderTable() {
         ${checkboxes}
         <td class="progress-cell">${completed}/${days}</td>
         <td>
-          <button class="edit-btn" data-action="edit"
+          <button
+            class="edit-btn"
+            data-action="edit"
             data-id="${escapeHTML(habit.id)}"
-            title="Edit"
-            ${actionsLocked ? "disabled" : ""}>✏️</button>
-          <button class="delete-btn" data-action="delete"
+            title="Edit">✏️</button>
+
+          <button
+            class="delete-btn"
+            data-action="delete"
             data-id="${escapeHTML(habit.id)}"
-            title="Delete"
-            ${actionsLocked ? "disabled" : ""}>🗑️</button>
+            title="Delete">🗑️</button>
         </td>
       </tr>
     `;
@@ -172,6 +175,8 @@ function renderTable() {
   }
 }
 
+// ---------------- DAILY DATA ----------------
+
 function getDailyData() {
   const days = getDays();
 
@@ -180,9 +185,13 @@ function getDailyData() {
       isCompleted(habit.id, i + 1)
     ).length;
 
-    return habits.length ? completed / habits.length * 100 : 0;
+    return habits.length
+      ? completed / habits.length * 100
+      : 0;
   });
 }
+
+// ---------------- CHART ----------------
 
 function drawChart() {
   const ctx = chart.getContext("2d");
@@ -192,11 +201,17 @@ function drawChart() {
 
   chart.width = width * ratio;
   chart.height = height * ratio;
+
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   ctx.clearRect(0, 0, width, height);
 
   const values = getDailyData();
-  const left = 38, right = 15, top = 20, bottom = 35;
+
+  const left = 38;
+  const right = 15;
+  const top = 20;
+  const bottom = 35;
+
   const graphWidth = width - left - right;
   const graphHeight = height - top - bottom;
 
@@ -207,39 +222,48 @@ function drawChart() {
 
   [0, 25, 50, 75, 100].forEach(value => {
     const y = top + graphHeight - value / 100 * graphHeight;
+
     ctx.beginPath();
     ctx.moveTo(left, y);
     ctx.lineTo(width - right, y);
     ctx.stroke();
+
     ctx.fillText(value + "%", left - 8, y + 4);
   });
 
   const x = i => left +
     (values.length <= 1 ? 0 : i * graphWidth / (values.length - 1));
 
-  const y = value => top + graphHeight - value / 100 * graphHeight;
+  const y = value =>
+    top + graphHeight - value / 100 * graphHeight;
 
   if (values.length) {
     const gradient = ctx.createLinearGradient(0, top, 0, height);
+
     gradient.addColorStop(0, "rgba(155,117,255,0.35)");
     gradient.addColorStop(1, "rgba(155,117,255,0)");
 
     ctx.beginPath();
+
     values.forEach((value, i) => {
       if (i === 0) ctx.moveTo(x(i), y(value));
       else ctx.lineTo(x(i), y(value));
     });
+
     ctx.lineTo(x(values.length - 1), top + graphHeight);
     ctx.lineTo(x(0), top + graphHeight);
     ctx.closePath();
+
     ctx.fillStyle = gradient;
     ctx.fill();
 
     ctx.beginPath();
+
     values.forEach((value, i) => {
       if (i === 0) ctx.moveTo(x(i), y(value));
       else ctx.lineTo(x(i), y(value));
     });
+
     ctx.strokeStyle = "#a987ff";
     ctx.lineWidth = 3;
     ctx.stroke();
@@ -254,6 +278,7 @@ function drawChart() {
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#9992ad";
+
   const step = Math.max(1, Math.ceil(values.length / 10));
 
   values.forEach((_, i) => {
@@ -263,9 +288,12 @@ function drawChart() {
   });
 }
 
+// ---------------- STATISTICS ----------------
+
 function updateStats() {
   const days = getDays();
   const total = habits.length * days;
+
   let completed = 0;
   let bestHabit = "-";
   let bestCount = 0;
@@ -286,7 +314,9 @@ function updateStats() {
     }
   });
 
-  const rate = total ? Math.round(completed / total * 100) : 0;
+  const rate = total
+    ? Math.round(completed / total * 100)
+    : 0;
 
   document.getElementById("successRate").textContent = rate + "%";
   document.getElementById("completedCount").textContent = completed;
@@ -295,6 +325,7 @@ function updateStats() {
   document.getElementById("monthlyProgress").textContent = rate + "%";
 
   const start = Math.max(1, days - 6);
+
   let weekDone = 0;
   const weekTotal = habits.length * (days - start + 1);
 
@@ -305,13 +336,15 @@ function updateStats() {
   }
 
   const weeklyRate = weekTotal
-    ? Math.round(weekDone / weekTotal * 100) : 0;
+    ? Math.round(weekDone / weekTotal * 100)
+    : 0;
 
   document.getElementById("weeklyProgress").textContent =
     weeklyRate + "%";
 
   const activeDays = Array.from(
-    { length: days }, (_, i) => i + 1
+    { length: days },
+    (_, i) => i + 1
   ).filter(day =>
     habits.some(habit => isCompleted(habit.id, day))
   ).length;
@@ -327,29 +360,30 @@ function render() {
   updateStats();
 }
 
-document.getElementById("addHabitBtn").addEventListener("click", () => {
-  if (habits.length >= 12) {
-    alert("Maximum 12 habits allowed.");
-    return;
-  }
+// ---------------- ADD HABIT ----------------
 
-  if (hasPastRecords()) {
-    alert("Habit list is locked because previous records exist.");
-    return;
-  }
+document.getElementById("addHabitBtn")
+  .addEventListener("click", () => {
 
-  const name = prompt("Enter your new habit:");
+    if (habits.length >= 12) {
+      alert("Maximum 12 habits allowed.");
+      return;
+    }
 
-  if (!name || !name.trim()) return;
+    const name = prompt("Enter your new habit:");
 
-  habits.push({
-    id: "habit_" + Date.now(),
-    name: name.trim()
+    if (!name || !name.trim()) return;
+
+    habits.push({
+      id: "habit_" + Date.now(),
+      name: name.trim()
+    });
+
+    saveData();
+    render();
   });
 
-  saveData();
-  render();
-});
+// ---------------- CHECKBOX DATE LOCK ----------------
 
 tableBody.addEventListener("change", event => {
   const checkbox = event.target;
@@ -357,34 +391,36 @@ tableBody.addEventListener("change", event => {
   if (!checkbox.classList.contains("habit-check")) return;
 
   const day = Number(checkbox.dataset.day);
+  const habitId = checkbox.dataset.id;
 
-  // Only today's checkbox can be changed.
+  // Safety check: only today's date is editable.
   if (!isEditableDay(day)) {
-    checkbox.checked = isCompleted(checkbox.dataset.id, day);
-    alert("Past and future dates are locked!");
+    checkbox.checked = isCompleted(habitId, day);
     return;
   }
 
-  const key = checkbox.dataset.id + "_" + day;
+  const key = habitId + "_" + day;
   const monthRecords = getMonthRecords();
 
-  if (checkbox.checked) monthRecords[key] = true;
-  else delete monthRecords[key];
+  if (checkbox.checked) {
+    monthRecords[key] = true;
+  } else {
+    delete monthRecords[key];
+  }
 
   saveData();
   render();
 });
 
+// ---------------- EDIT / DELETE HABIT ----------------
+
 tableBody.addEventListener("click", event => {
   const button = event.target.closest("button[data-action]");
+
   if (!button) return;
 
-  if (hasPastRecords() || isPastMonth()) {
-    alert("Habit editing is locked to protect your records.");
-    return;
-  }
-
   const habit = habits.find(h => h.id === button.dataset.id);
+
   if (!habit) return;
 
   if (button.dataset.action === "edit") {
@@ -392,6 +428,7 @@ tableBody.addEventListener("click", event => {
 
     if (name && name.trim()) {
       habit.name = name.trim();
+
       saveData();
       render();
     }
@@ -401,11 +438,16 @@ tableBody.addEventListener("click", event => {
     if (!confirm(`Delete "${habit.name}"?`)) return;
 
     const id = habit.id;
+
     habits = habits.filter(h => h.id !== id);
 
+    // Keep the original delete behavior:
+    // remove this habit's records from all months.
     Object.values(records).forEach(month => {
       Object.keys(month).forEach(key => {
-        if (key.startsWith(id + "_")) delete month[key];
+        if (key.startsWith(id + "_")) {
+          delete month[key];
+        }
       });
     });
 
@@ -424,7 +466,9 @@ const defaultSettings = {
   long: 15
 };
 
-let timerData = JSON.parse(localStorage.getItem(TIMER_KEY) || "null");
+let timerData = JSON.parse(
+  localStorage.getItem(TIMER_KEY) || "null"
+);
 
 if (!timerData) {
   timerData = {
@@ -441,6 +485,7 @@ timerData.settings = {
   ...defaultSettings,
   ...(timerData.settings || {})
 };
+
 timerData.sessions = timerData.sessions || [];
 
 let timerInterval = null;
@@ -448,6 +493,7 @@ let timerInterval = null;
 const timerDisplay = document.getElementById("timerDisplay");
 const timerStatus = document.getElementById("timerStatus");
 const timerMessage = document.getElementById("timerMessage");
+
 const startBtn = document.getElementById("startBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const resetBtn = document.getElementById("resetBtn");
@@ -476,6 +522,7 @@ function formatTime(seconds) {
 
 function renderTimer() {
   timerDisplay.textContent = formatTime(timerData.remaining);
+
   timerStatus.textContent = timerData.running
     ? modeNames[timerData.mode]
     : timerData.remaining === 0
@@ -490,8 +537,10 @@ function renderTimer() {
   });
 
   startBtn.textContent = timerData.running
-    ? "Running..." : timerData.remaining === 0
-      ? "Start Again" : "Start " +
+    ? "Running..."
+    : timerData.remaining === 0
+      ? "Start Again"
+      : "Start " +
         (timerData.mode === "focus" ? "Focus" : "Break");
 
   startBtn.disabled = timerData.running;
@@ -519,6 +568,7 @@ function finishSession() {
   timerInterval = null;
 
   const completedMode = timerData.mode;
+
   timerData.running = false;
   timerData.remaining = 0;
   timerData.endTime = null;
@@ -538,16 +588,19 @@ function finishSession() {
 
     if (focusCount % 4 === 0) {
       setMode("long");
+
       timerMessage.textContent =
         "Four focus sessions completed! Enjoy a long break.";
     } else {
       setMode("short");
+
       timerMessage.textContent =
         "Great work! Take a short break.";
     }
   } else {
     timerMessage.textContent =
       "Break completed. Ready for another focus session?";
+
     setMode("focus");
   }
 
@@ -619,14 +672,20 @@ function resetTimer() {
 
   saveTimer();
   renderTimer();
-  timerMessage.textContent = "Timer reset. Ready when you are.";
+
+  timerMessage.textContent =
+    "Timer reset. Ready when you are.";
 }
 
 function notifyCompletion(mode) {
-  if ("Notification" in window &&
-      Notification.permission === "granted") {
+  if (
+    "Notification" in window &&
+    Notification.permission === "granted"
+  ) {
     new Notification(
-      mode === "focus" ? "Focus session completed!" : "Break completed!",
+      mode === "focus"
+        ? "Focus session completed!"
+        : "Break completed!",
       {
         body: mode === "focus"
           ? "Great work. Time to take a break."
@@ -646,7 +705,7 @@ document.querySelectorAll(".mode-btn").forEach(button => {
   });
 });
 
-// Custom timer settings
+// ---------------- TIMER SETTINGS ----------------
 
 const focusInput = document.getElementById("focusDuration");
 const shortInput = document.getElementById("shortDuration");
@@ -660,11 +719,15 @@ function loadSettings() {
 
 function validNumber(input, min, max) {
   const value = Number(input.value);
-  return Number.isInteger(value) && value >= min && value <= max;
+
+  return Number.isInteger(value) &&
+    value >= min &&
+    value <= max;
 }
 
 document.getElementById("saveSettingsBtn")
   .addEventListener("click", () => {
+
     if (timerData.running) {
       alert("Pause the timer before changing settings.");
       return;
@@ -694,6 +757,8 @@ document.getElementById("saveSettingsBtn")
       "Settings saved successfully!";
   });
 
+// ---------------- FOCUS STATISTICS ----------------
+
 function updateFocusStats() {
   const todayKey = localDateKey();
 
@@ -702,11 +767,13 @@ function updateFocusStats() {
   );
 
   const totalToday = todaySessions.reduce(
-    (sum, session) => sum + session.minutes, 0
+    (sum, session) => sum + session.minutes,
+    0
   );
 
   const totalAll = timerData.sessions.reduce(
-    (sum, session) => sum + session.minutes, 0
+    (sum, session) => sum + session.minutes,
+    0
   );
 
   document.getElementById("focusTimeToday").textContent =
@@ -741,14 +808,17 @@ loadSettings();
 renderTimer();
 updateFocusStats();
 render();
+
 saveData();
 saveTimer();
 
 window.addEventListener("resize", drawChart);
 
 startBtn.addEventListener("click", () => {
-  if ("Notification" in window &&
-      Notification.permission === "default") {
+  if (
+    "Notification" in window &&
+    Notification.permission === "default"
+  ) {
     Notification.requestPermission();
   }
 });

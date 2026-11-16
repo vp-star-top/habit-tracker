@@ -473,3 +473,20 @@ footer {
     font-size: 12px;
   }
 }
+
+/* HABIT DATE LOCKING */
+
+.habit-check:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.habit-check:disabled:checked {
+  background: var(--purple);
+  border-color: var(--purple);
+}
+
+.habit-check:disabled:not(:checked) {
+  background: #211c30;
+  border-color: #514963;
+}

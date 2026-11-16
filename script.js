@@ -31,6 +31,30 @@ function localDateKey(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+// Date locking helpers
+function getCellDate(day) {
+  return `${getMonth()}-${String(day).padStart(2, "0")}`;
+}
+
+function isToday(day) {
+  return getCellDate(day) === localDateKey();
+}
+
+function isEditableDay(day) {
+  return isToday(day);
+}
+
+function isPastMonth() {
+  return getMonth() < currentMonth;
+}
+
+function hasPastRecords() {
+  return Object.keys(records).some(month =>
+    month < currentMonth &&
+    Object.keys(records[month] || {}).length > 0
+  );
+}
+
 function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     habits,
@@ -97,6 +121,7 @@ function renderTable() {
     const checkboxes = Array.from({ length: days }, (_, i) => {
       const day = i + 1;
       const checked = isCompleted(habit.id, day);
+      const editable = isEditableDay(day);
 
       if (checked) completed++;
 
@@ -109,10 +134,18 @@ function renderTable() {
             data-day="${day}"
             aria-label="${escapeHTML(habit.name)} day ${day}"
             ${checked ? "checked" : ""}
+            ${editable ? "" : "disabled"}
+            title="${editable ? "Today's habit - editable" :
+              getCellDate(day) < localDateKey()
+                ? "Past record - read only"
+                : "Future date - locked"}"
           >
         </td>
       `;
     }).join("");
+
+    const actionsLocked =
+      isPastMonth() || hasPastRecords();
 
     return `
       <tr>
@@ -121,9 +154,13 @@ function renderTable() {
         <td class="progress-cell">${completed}/${days}</td>
         <td>
           <button class="edit-btn" data-action="edit"
-            data-id="${escapeHTML(habit.id)}" title="Edit">✏️</button>
+            data-id="${escapeHTML(habit.id)}"
+            title="Edit"
+            ${actionsLocked ? "disabled" : ""}>✏️</button>
           <button class="delete-btn" data-action="delete"
-            data-id="${escapeHTML(habit.id)}" title="Delete">🗑️</button>
+            data-id="${escapeHTML(habit.id)}"
+            title="Delete"
+            ${actionsLocked ? "disabled" : ""}>🗑️</button>
         </td>
       </tr>
     `;
@@ -296,6 +333,11 @@ document.getElementById("addHabitBtn").addEventListener("click", () => {
     return;
   }
 
+  if (hasPastRecords()) {
+    alert("Habit list is locked because previous records exist.");
+    return;
+  }
+
   const name = prompt("Enter your new habit:");
 
   if (!name || !name.trim()) return;
@@ -314,7 +356,16 @@ tableBody.addEventListener("change", event => {
 
   if (!checkbox.classList.contains("habit-check")) return;
 
-  const key = checkbox.dataset.id + "_" + checkbox.dataset.day;
+  const day = Number(checkbox.dataset.day);
+
+  // Only today's checkbox can be changed.
+  if (!isEditableDay(day)) {
+    checkbox.checked = isCompleted(checkbox.dataset.id, day);
+    alert("Past and future dates are locked!");
+    return;
+  }
+
+  const key = checkbox.dataset.id + "_" + day;
   const monthRecords = getMonthRecords();
 
   if (checkbox.checked) monthRecords[key] = true;
@@ -327,6 +378,11 @@ tableBody.addEventListener("change", event => {
 tableBody.addEventListener("click", event => {
   const button = event.target.closest("button[data-action]");
   if (!button) return;
+
+  if (hasPastRecords() || isPastMonth()) {
+    alert("Habit editing is locked to protect your records.");
+    return;
+  }
 
   const habit = habits.find(h => h.id === button.dataset.id);
   if (!habit) return;
@@ -667,7 +723,6 @@ function updateFocusStats() {
 
 // ---------------- STARTUP ----------------
 
-// Restore a running timer after a page refresh.
 if (timerData.running && timerData.endTime) {
   if (timerData.endTime <= Date.now()) {
     finishSession();
@@ -691,7 +746,6 @@ saveTimer();
 
 window.addEventListener("resize", drawChart);
 
-// Request notification permission only after user starts the timer.
 startBtn.addEventListener("click", () => {
   if ("Notification" in window &&
       Notification.permission === "default") {
